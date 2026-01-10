@@ -1,0 +1,76 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'VERSION',
+            defaultValue: '1.0.0',
+            description: 'Application & Docker version'
+        )
+    }
+
+    tools {
+        jdk 'JDK-17'
+        maven 'Maven-3.9'
+    }
+
+    environment {
+        IMAGE_NAME = "Java_app"
+        CONTAINER_NAME = "Java_app_mvn"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Bala5667/Java_app_practice.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Set Version & Package') {
+            steps {
+                sh """
+                mvn versions:set -DnewVersion=${VERSION}
+                mvn clean package -DskipTests
+                """
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh "docker build -t ${IMAGE_NAME}:${VERSION} ."
+            }
+        }
+
+        stage('Docker Run') {
+            steps {
+                sh """
+                docker stop ${CONTAINER_NAME} || true
+                docker rm ${CONTAINER_NAME} || true
+                docker run -d -p 8080:8080 \
+                    --name ${CONTAINER_NAME} \
+                    ${IMAGE_NAME}:${VERSION}
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Application deployed successfully with version ${VERSION}"
+        }
+    }
+}
