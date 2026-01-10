@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+
+    parameters {
+        booleanParam(name: 'SKIP_CHECKOUT', defaultValue: false, description: 'Skip Git checkout')
+        booleanParam(name: 'SKIP_BUILD',    defaultValue: false, description: 'Skip Maven build')
+        booleanParam(name: 'SKIP_TEST',     defaultValue: false, description: 'Skip Maven tests')
+        booleanParam(name: 'SKIP_PACKAGE',  defaultValue: false, description: 'Skip Maven package')
+
+        booleanParam(name: 'RUN_DOCKER_BUILD', defaultValue: false, description: 'Build Docker image')
+        booleanParam(name: 'RUN_DOCKER_RUN',   defaultValue: false, description: 'Run Docker container')
+    }
+
+    tools {
+        jdk 'JDK-17'
+        maven 'Maven-3.9'
+    }
+
+    environment {
+        IMAGE_NAME = "Java_app"
+        CONTAINER_NAME = "Java_app_mvn"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            when {
+                expression { !params.SKIP_CHECKOUT }
+            }
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Bala5667/Java_app_practice.git'
+            }
+        }
+
+        stage('Build') {
+            when {
+                expression { !params.SKIP_BUILD }
+            }
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression { !params.SKIP_TEST }
+            }
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Package') {
+            when {
+                expression { !params.SKIP_PACKAGE }
+            }
+            steps {
+                sh 'mvn package -DskipTests'
+            }
+        }
+
+        stage('Docker Build') {
+            when {
+                expression { params.RUN_DOCKER_BUILD }
+            }
+            steps {
+                sh 'docker build -t $IMAGE_NAME .'
+            }
+        }
+
+        stage('Docker Run') {
+            when {
+                expression { params.RUN_DOCKER_RUN }
+            }
+            steps {
+                sh '''
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+                docker run -d -p 8080:8080 --name $CONTAINER_NAME $IMAGE_NAME
+                '''
+            }
+        }
+    }
+}
