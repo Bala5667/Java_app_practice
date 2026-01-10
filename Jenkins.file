@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Stage 1: Checking out code'
+                git 'https://github.com/your/repo.git'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Stage 2: Building'
+                sh 'mvn clean compile'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Stage 3: Testing'
+                sh 'mvn test'
+            }
+        }
+        
+    
+    post {
+        success {
+            echo '✅ Build & Test stages completed successfully!'
+        }
+    }
+}
+}
