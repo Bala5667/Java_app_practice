@@ -1,0 +1,109 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'RUN_STAGE',
+            choices: [
+                'ALL',
+                'Checkout',
+                'Build',
+                'Test',
+                'Package',
+                'Docker-Build',
+                'Docker-Run'
+            ],
+            description: 'Select which stage to run'
+        )
+    }
+
+    tools {
+        jdk 'JDK-17'
+        maven 'Maven-3.9'
+    }
+
+    environment {
+        IMAGE_NAME = "Java_app"
+        CONTAINER_NAME = "Java_app_mvn"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Checkout' }
+                }
+            }
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Bala5667/Java_app_practice.git'
+            }
+        }
+
+        stage('Build') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Build' }
+                }
+            }
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Test' }
+                }
+            }
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Package') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Package' }
+                }
+            }
+            steps {
+                sh 'mvn package -DskipTests'
+            }
+        }
+
+        stage('Docker-Build') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Docker-Build' }
+                }
+            }
+            steps {
+                sh 'docker build -t $IMAGE_NAME .'
+            }
+        }
+
+        stage('Docker-Run') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Docker-Run' }
+                }
+            }
+            steps {
+                sh '''
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+                docker run -d -p 8080:8080 --name $CONTAINER_NAME $IMAGE_NAME
+                '''
+            }
+        }
+    }
+}
