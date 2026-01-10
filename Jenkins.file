@@ -10,7 +10,7 @@ stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/Bala5667/mediplus-lite-new.git'
+                    url: 'https://github.com/Bala5667/Java_app_practice.git'
             }
         }
 
