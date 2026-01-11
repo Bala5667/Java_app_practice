@@ -23,8 +23,8 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "Java_app"
-        CONTAINER_NAME = "Java_app_mvn"
+        IMAGE_NAME = "java_app"
+        CONTAINER_NAME = "java_app_mvn"
     }
 
     stages {
@@ -86,7 +86,7 @@ pipeline {
                 }
             }
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker build -t $IMAGE_NAME:1.0.0 .'
             }
         }
 
