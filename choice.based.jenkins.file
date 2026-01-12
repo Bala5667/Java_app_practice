@@ -24,7 +24,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "java_app"
-        CONTAINER_NAME = "java_app_mvn"
+        CONTAINER_NAME = "java_app_container"
     }
 
     stages {
@@ -101,7 +101,7 @@ pipeline {
                 sh '''
                 docker stop $CONTAINER_NAME || true
                 docker rm $CONTAINER_NAME || true
-                docker run -d -p 8085:8080 --name $CONTAINER_NAME $IMAGE_NAME:1.0.0 .
+                docker run -d -p 8085:8080 --name $CONTAINER_NAME $IMAGE_NAME:1.0.0
                 '''
             }
         }
