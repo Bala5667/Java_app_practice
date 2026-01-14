@@ -11,7 +11,8 @@ pipeline {
                 'Test',
                 'Package',
                 'Docker-Build',
-                'Docker-Run'
+                'Docker-Run',
+                'Docker-Push'  // Added new option
             ],
             description: 'Select which stage to run'
         )
@@ -25,6 +26,8 @@ pipeline {
     environment {
         IMAGE_NAME = "java_app_v2.0.0"
         CONTAINER_NAME = "java_app_container"
+        DOCKERHUB_USER = "your-dockerhub-username"  // ← Change this
+        DOCKERHUB_REPO = "${DOCKERHUB_USER}/java-app"  // ← Your Docker Hub repo
     }
 
     stages {
@@ -86,7 +89,11 @@ pipeline {
                 }
             }
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh '''
+                    docker build -t $IMAGE_NAME .
+                    docker tag $IMAGE_NAME $DOCKERHUB_REPO:$BUILD_NUMBER
+                    docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest
+                '''
             }
         }
 
@@ -102,8 +109,41 @@ pipeline {
                 docker stop $CONTAINER_NAME || true
                 docker rm $CONTAINER_NAME || true
                 docker run -d -p 8085:8080 --name $CONTAINER_NAME $IMAGE_NAME
+                sleep 5
+                curl -f http://localhost:8085/ || echo "App might be starting..."
                 '''
             }
         }
+
+        // ===== NEW STAGE: Push to Docker Hub =====
+        stage('Docker-Push') {
+            when {
+                anyOf {
+                    expression { params.RUN_STAGE == 'ALL' }
+                    expression { params.RUN_STAGE == 'Docker-Push' }
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',  // ← Add credentials in Jenkins
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        # Login to Docker Hub
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        
+                        # Push both tags
+                        echo "Pushing $DOCKERHUB_REPO:$BUILD_NUMBER ..."
+                        docker push $DOCKERHUB_REPO:$BUILD_NUMBER
+                        
+                        echo "Pushing $DOCKERHUB_REPO:latest ..."
+                        docker push $DOCKERHUB_REPO:latest
+                        
+                        echo "✅ Successfully pushed to Docker Hub!"
+                        echo "Image URL: https://hub.docker.com/r/$DOCKERHUB_REPO"
+                    '''
+                }
+            }
+        }
     }
-}
