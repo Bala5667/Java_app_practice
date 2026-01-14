@@ -1,5 +1,5 @@
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY target/demo-0.0.1-SNAPSHOT.jar demo-0.0.1-SNAPSHOT.jar
+COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8085
-CMD ["java", "-jar", "demo-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
