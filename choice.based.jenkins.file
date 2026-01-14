@@ -12,7 +12,7 @@ pipeline {
                 'Package',
                 'Docker-Build',
                 'Docker-Run',
-                'Docker-Push'  // Added new option
+                'Docker-Push'
             ],
             description: 'Select which stage to run'
         )
@@ -26,8 +26,8 @@ pipeline {
     environment {
         IMAGE_NAME = "java_app_v2.0.0"
         CONTAINER_NAME = "java_app_container"
-        DOCKERHUB_USER = "your-dockerhub-username"  // ← Change this
-        DOCKERHUB_REPO = "${DOCKERHUB_USER}/java-app"  // ← Your Docker Hub repo
+        DOCKERHUB_USER = "your-dockerhub-username"
+        DOCKERHUB_REPO = "${DOCKERHUB_USER}/java-app"
     }
 
     stages {
@@ -115,7 +115,6 @@ pipeline {
             }
         }
 
-        // ===== NEW STAGE: Push to Docker Hub =====
         stage('Docker-Push') {
             when {
                 anyOf {
@@ -125,21 +124,16 @@ pipeline {
             }
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',  // ← Add credentials in Jenkins
+                    credentialsId: 'dockerhub-creds',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                        # Login to Docker Hub
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        
-                        # Push both tags
                         echo "Pushing $DOCKERHUB_REPO:$BUILD_NUMBER ..."
                         docker push $DOCKERHUB_REPO:$BUILD_NUMBER
-                        
                         echo "Pushing $DOCKERHUB_REPO:latest ..."
                         docker push $DOCKERHUB_REPO:latest
-                        
                         echo "✅ Successfully pushed to Docker Hub!"
                         echo "Image URL: https://hub.docker.com/r/$DOCKERHUB_REPO"
                     '''
@@ -147,3 +141,22 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            echo '🎉 Pipeline completed successfully!'
+            script {
+                if (params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Docker-Push') {
+                    echo "Docker Hub Image: $DOCKERHUB_REPO:$BUILD_NUMBER"
+                    echo "Local container running on: http://localhost:8085"
+                }
+            }
+        }
+        failure {
+            echo '❌ Pipeline failed!'
+        }
+        cleanup {
+            sh 'docker ps -a'
+        }
+    }
+}
