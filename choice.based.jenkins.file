@@ -26,7 +26,7 @@ pipeline {
     environment {
         IMAGE_NAME = "java_app_v2.0.0"
         CONTAINER_NAME = "java_app_container"
-        DOCKERHUB_USER = "your-dockerhub-username"
+        DOCKERHUB_USER = "balaji5667"  // ← Your actual username
         DOCKERHUB_REPO = "${DOCKERHUB_USER}/java-app"
     }
 
@@ -90,9 +90,9 @@ pipeline {
             }
             steps {
                 sh '''
-                    docker build -t $IMAGE_NAME .
-                    docker tag $IMAGE_NAME $DOCKERHUB_REPO:$BUILD_NUMBER
-                    docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest
+                    docker build -t $DOCKERHUB_REPO:$BUILD_NUMBER .
+                    docker tag $DOCKERHUB_REPO:$BUILD_NUMBER $DOCKERHUB_REPO:latest
+                    docker tag $DOCKERHUB_REPO:$BUILD_NUMBER $IMAGE_NAME:latest
                 '''
             }
         }
@@ -108,7 +108,7 @@ pipeline {
                 sh '''
                 docker stop $CONTAINER_NAME || true
                 docker rm $CONTAINER_NAME || true
-                docker run -d -p 8085:8080 --name $CONTAINER_NAME $IMAGE_NAME
+                docker run -d -p 8085:8080 --name $CONTAINER_NAME $DOCKERHUB_REPO:latest
                 sleep 5
                 curl -f http://localhost:8085/ || echo "App might be starting..."
                 '''
